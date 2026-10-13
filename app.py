@@ -35,9 +35,9 @@ with st.sidebar:
     st.header("🔑 API Credentials")
     api_key_input = st.text_input(
         "Enter Groq API Key:",
-        value=env_key,
+        value="",  # never prefill: a prefilled value is sent to the visitor's browser
         type="password",
-        help="Get an API key from the Groq Console.",
+        help="Optional if the host already provides a key. Get one from the Groq Console.",
     )
     st.caption("The key is used at runtime only and is not stored.")
 
@@ -52,7 +52,7 @@ def initialize_groq_client(api_key: str):
         return None
 
 
-client = initialize_groq_client(api_key_input)
+client = initialize_groq_client(api_key_input or env_key)
 
 if not client:
     st.sidebar.warning("Missing or invalid API key. Add your Groq key above.")
@@ -71,7 +71,7 @@ RULES = [
         "summary": "Advisor keeps toggling the VSC on and off without moving the deal forward.",
         "conditions": [
             {"metric": "elapsed_in_state_min", "op": ">=", "threshold": 20},
-            {"metric": "vsc_product_event_count", "op": ">=", "threshold": 4},
+            {"metric": "vsc_toggle_count", "op": ">=", "threshold": 4},
         ],
     },
     {
@@ -162,7 +162,7 @@ def compute_metrics(events: list, entered: datetime, now: datetime, deal: dict) 
         "elapsed_in_state_min": round(minutes_between(entered, now), 1),
         "idle_min": round(minutes_between(last_action, now), 1),
         "event_window_min": round(window, 1),
-        "vsc_product_event_count": sum(
+        "vsc_toggle_count": sum(
             1
             for e in events
             if e["event_type"] == "product_toggle" and e.get("target_product") == "VSC"
